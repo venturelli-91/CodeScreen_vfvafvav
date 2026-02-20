@@ -2,26 +2,38 @@ import { useState } from 'react'
 import {
   Box,
   Button,
+  Card,
+  CardActions,
+  CardContent,
   Chip,
   CircularProgress,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
+  Divider,
   Typography,
 } from '@mui/material'
+import AccessTimeIcon from '@mui/icons-material/AccessTime'
+import PersonIcon from '@mui/icons-material/Person'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
-import type { Worker } from '../types'
+
+const fmt = (d: string) =>
+  new Date(d).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+
+function shiftStatus(cancelled: boolean, workerId: string | null) {
+  if (cancelled) return { label: 'Cancelled', color: 'error' as const }
+  if (workerId) return { label: 'Claimed', color: 'warning' as const }
+  return { label: 'Open', color: 'success' as const }
+}
 
 export default function ShiftsPage() {
   const qc = useQueryClient()
   const [claimingId, setClaimingId] = useState<string | null>(null)
 
-  const { data: shifts, isLoading: loadingShifts } = useQuery({
+  const { data: shifts, isLoading } = useQuery({
     queryKey: ['shifts'],
     queryFn: () => api.shifts.list(),
   })
@@ -40,72 +52,90 @@ export default function ShiftsPage() {
     },
   })
 
-  const workerMap = new Map<string, Worker>(workers?.map((w) => [w.id, w]) ?? [])
+  const cancel = useMutation({
+    mutationFn: (shiftId: string) => api.shifts.cancel(shiftId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['shifts'] }),
+  })
 
-  const statusColor = (s: string) => {
-    if (s === 'open') return 'success'
-    if (s === 'claimed') return 'warning'
-    return 'default'
-  }
-
-  if (loadingShifts) return <CircularProgress sx={{ m: 4 }} />
+  if (isLoading) return <CircularProgress sx={{ m: 4 }} />
 
   return (
     <Box>
-      <Typography variant="h5" gutterBottom>
+      <Typography variant="h5" gutterBottom sx={{ color: "text.primary", textShadow: "0 2px 12px rgba(0,0,0,0.8)" }}>
         Shifts
       </Typography>
-      <TableContainer component={Paper}>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Start</TableCell>
-              <TableCell>End</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Worker</TableCell>
-              <TableCell />
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {shifts?.map((shift) => (
-              <TableRow key={shift.id}>
-                <TableCell>{new Date(shift.startTime).toLocaleString()}</TableCell>
-                <TableCell>{new Date(shift.endTime).toLocaleString()}</TableCell>
-                <TableCell>
-                  <Chip label={shift.status} color={statusColor(shift.status) as never} size="small" />
-                </TableCell>
-                <TableCell>
-                  {shift.workerId ? workerMap.get(shift.workerId)?.name ?? shift.workerId : '—'}
-                </TableCell>
-                <TableCell>
-                  {shift.status === 'open' && (
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                      {claimingId === shift.id
-                        ? workers
-                            ?.filter((w) => w.active)
-                            .map((w) => (
-                              <Button
-                                key={w.id}
-                                size="small"
-                                variant="outlined"
-                                onClick={() => claim.mutate({ shiftId: shift.id, workerId: w.id })}
-                              >
-                                {w.name}
-                              </Button>
-                            ))
-                        : (
-                          <Button size="small" onClick={() => setClaimingId(shift.id)}>
-                            Claim
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 2 }}>
+        {shifts?.map((shift) => {
+          const status = shiftStatus(shift.cancelled, shift.workerId)
+          const eligible = workers?.filter((w) => w.trade === shift.trade) ?? []
+          return (
+            <Card key={shift.id}>
+              <CardContent sx={{ pb: 1 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                  <Chip label={shift.trade} size="small" variant="outlined" color="primary" />
+                  <Chip label={status.label} size="small" color={status.color} />
+                </Box>
+                <Typography variant="subtitle1" noWrap>
+                  {shift.workplace?.name ?? '—'}
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1, color: 'text.secondary' }}>
+                  <AccessTimeIcon sx={{ fontSize: 15 }} />
+                  <Typography variant="body2">
+                    {fmt(shift.start)} → {fmt(shift.end)}
+                  </Typography>
+                </Box>
+                <Divider sx={{ my: 1.5 }} />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary' }}>
+                  <PersonIcon sx={{ fontSize: 15 }} />
+                  <Typography variant="body2">
+                    {shift.worker?.name ?? 'Unassigned'}
+                  </Typography>
+                </Box>
+              </CardContent>
+
+              {(!shift.cancelled) && (
+                <CardActions sx={{ pt: 0, flexWrap: 'wrap', gap: 0.5 }}>
+                  {!shift.workerId && (
+                    claimingId === shift.id ? (
+                      eligible.length === 0 ? (
+                        <Typography variant="caption" color="text.secondary" sx={{ px: 1 }}>
+                          No eligible workers
+                        </Typography>
+                      ) : (
+                        eligible.map((w) => (
+                          <Button
+                            key={w.id}
+                            size="small"
+                            variant="outlined"
+                            onClick={() => claim.mutate({ shiftId: shift.id, workerId: w.id })}
+                          >
+                            {w.name}
                           </Button>
-                        )}
-                    </Box>
+                        ))
+                      )
+                    ) : (
+                      <Button size="small" variant="contained" onClick={() => setClaimingId(shift.id)}>
+                        Claim
+                      </Button>
+                    )
                   )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+                  {shift.workerId && (
+                    <Button
+                      size="small"
+                      color="error"
+                      variant="outlined"
+                      onClick={() => cancel.mutate(shift.id)}
+                      disabled={cancel.isPending}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                </CardActions>
+              )}
+            </Card>
+          )
+        })}
+      </Box>
     </Box>
   )
 }
