@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Worker {
+  id        String   @id @default(uuid())
+  name      String
+  trade     String
+  createdAt DateTime @default(now())
+  claims    Shift[]  @relation("WorkerClaims")
+}
+
+model Workplace {
+  id        String   @id @default(uuid())
+  name      String
+  address   String
+  createdAt DateTime @default(now())
+  shifts    Shift[]
+}
+
+model Shift {
+  id          String    @id @default(uuid())
+  start       DateTime
+  end         DateTime
+  trade       String
+  workplace   Workplace @relation(fields: [workplaceId], references: [id])
+  workplaceId String
+  worker      Worker?   @relation("WorkerClaims", fields: [workerId], references: [id])
+  workerId    String?
+  cancelled   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+}
