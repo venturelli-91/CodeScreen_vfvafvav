@@ -14,9 +14,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   workplaces: {
     list: () => request<Workplace[]>('/workplaces'),
+    create: (body: { name: string; address: string }) =>
+      request<Workplace>('/workplaces', { method: 'POST', body: JSON.stringify(body) }),
   },
   workers: {
     list: () => request<Worker[]>('/workers'),
+    create: (body: { name: string; trade: string }) =>
+      request<Worker>('/workers', { method: 'POST', body: JSON.stringify(body) }),
   },
   shifts: {
     list: () => request<Shift[]>('/shifts'),

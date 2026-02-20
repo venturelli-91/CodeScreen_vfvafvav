@@ -19,11 +19,16 @@ import { api } from '../api'
 
 export default function WorkplacesPage() {
   const qc = useQueryClient()
-  const [open, setOpen] = useState(false)
+
+  const [shiftOpen, setShiftOpen] = useState(false)
   const [selectedWorkplaceId, setSelectedWorkplaceId] = useState('')
   const [start, setStart] = useState('')
   const [end, setEnd] = useState('')
   const [trade, setTrade] = useState('')
+
+  const [wpOpen, setWpOpen] = useState(false)
+  const [wpName, setWpName] = useState('')
+  const [wpAddress, setWpAddress] = useState('')
 
   const { data: workplaces, isLoading } = useQuery({
     queryKey: ['workplaces'],
@@ -34,10 +39,20 @@ export default function WorkplacesPage() {
     mutationFn: api.shifts.create,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['shifts'] })
-      setOpen(false)
+      setShiftOpen(false)
       setStart('')
       setEnd('')
       setTrade('')
+    },
+  })
+
+  const createWorkplace = useMutation({
+    mutationFn: api.workplaces.create,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['workplaces'] })
+      setWpOpen(false)
+      setWpName('')
+      setWpAddress('')
     },
   })
 
@@ -45,36 +60,75 @@ export default function WorkplacesPage() {
 
   return (
     <Box>
-      <Typography variant="h5" gutterBottom sx={{ color: "text.primary", textShadow: "0 2px 12px rgba(0,0,0,0.8)" }}>
-        Workplaces
-      </Typography>
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 2 }}>
-        {workplaces?.map((wp) => (
-          <Card key={wp.id}>
-            <CardContent sx={{ pb: 1 }}>
-              <Typography variant="subtitle1">{wp.name}</Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, color: 'text.secondary' }}>
-                <LocationOnIcon sx={{ fontSize: 15 }} />
-                <Typography variant="body2">{wp.address}</Typography>
-              </Box>
-            </CardContent>
-            <CardActions>
-              <Button
-                size="small"
-                variant="contained"
-                onClick={() => {
-                  setSelectedWorkplaceId(wp.id)
-                  setOpen(true)
-                }}
-              >
-                Post shift
-              </Button>
-            </CardActions>
-          </Card>
-        ))}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h5" sx={{ color: 'text.primary', textShadow: '0 2px 12px rgba(0,0,0,0.8)' }}>
+          Workplaces
+        </Typography>
+        <Button variant="contained" size="small" onClick={() => setWpOpen(true)}>
+          Add workplace
+        </Button>
       </Box>
 
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="xs">
+      {workplaces?.length === 0 ? (
+        <Typography color="text.secondary">No workplaces yet.</Typography>
+      ) : (
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 2 }}>
+          {workplaces?.map((wp) => (
+            <Card key={wp.id}>
+              <CardContent sx={{ pb: 1 }}>
+                <Typography variant="subtitle1">{wp.name}</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, color: 'text.secondary' }}>
+                  <LocationOnIcon sx={{ fontSize: 15 }} />
+                  <Typography variant="body2">{wp.address}</Typography>
+                </Box>
+              </CardContent>
+              <CardActions>
+                <Button
+                  size="small"
+                  variant="contained"
+                  onClick={() => {
+                    setSelectedWorkplaceId(wp.id)
+                    setShiftOpen(true)
+                  }}
+                >
+                  Post shift
+                </Button>
+              </CardActions>
+            </Card>
+          ))}
+        </Box>
+      )}
+
+      <Dialog open={wpOpen} onClose={() => setWpOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle>Add a workplace</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
+          <TextField
+            label="Name"
+            value={wpName}
+            onChange={(e) => setWpName(e.target.value)}
+            size="small"
+          />
+          <TextField
+            label="Address"
+            value={wpAddress}
+            onChange={(e) => setWpAddress(e.target.value)}
+            placeholder="e.g. 1 Olympus Mons, Mars"
+            size="small"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setWpOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            disabled={!wpName || !wpAddress || createWorkplace.isPending}
+            onClick={() => createWorkplace.mutate({ name: wpName, address: wpAddress })}
+          >
+            Add
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={shiftOpen} onClose={() => setShiftOpen(false)} fullWidth maxWidth="xs">
         <DialogTitle>Post a shift</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
           <TextField
@@ -102,7 +156,7 @@ export default function WorkplacesPage() {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={() => setShiftOpen(false)}>Cancel</Button>
           <Button
             variant="contained"
             disabled={!start || !end || !trade || createShift.isPending}
