@@ -64,6 +64,9 @@ export default function ShiftsPage() {
       <Typography variant="h5" gutterBottom sx={{ color: "text.primary", textShadow: "0 2px 12px rgba(0,0,0,0.8)" }}>
         Shifts
       </Typography>
+      {shifts?.length === 0 && (
+        <Typography color="text.secondary">No shifts yet.</Typography>
+      )}
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 2 }}>
         {shifts?.map((shift) => {
           const status = shiftStatus(shift.cancelled, shift.workerId)
