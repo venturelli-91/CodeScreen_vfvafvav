@@ -116,7 +116,11 @@ export default function WorkplacesPage() {
 	const showToast = (msg: string, severity: "success" | "error") =>
 		setToast({ open: true, message: msg, severity });
 
-	const { data: workplaces, isLoading } = useQuery({
+	const {
+		data: workplaces,
+		isLoading,
+		isError,
+	} = useQuery({
 		queryKey: ["workplaces"],
 		queryFn: () => api.workplaces.list(),
 	});
@@ -188,6 +192,7 @@ export default function WorkplacesPage() {
 					mb: 2,
 				}}>
 				<Typography
+					component="h1"
 					variant="h5"
 					sx={{
 						color: "text.primary",
@@ -207,6 +212,14 @@ export default function WorkplacesPage() {
 					</Button>
 				</motion.div>
 			</Box>
+
+			{isError && (
+				<Alert
+					severity="error"
+					sx={{ mb: 2 }}>
+					Failed to load workplaces. Please refresh and try again.
+				</Alert>
+			)}
 
 			{isLoading ? (
 				<Box
@@ -544,7 +557,8 @@ export default function WorkplacesPage() {
 				open={toast.open}
 				autoHideDuration={4000}
 				onClose={() => setToast((t) => ({ ...t, open: false }))}
-				anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
+				anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+				aria-live="polite">
 				<Alert
 					severity={toast.severity}
 					onClose={() => setToast((t) => ({ ...t, open: false }))}

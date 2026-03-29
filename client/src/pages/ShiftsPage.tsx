@@ -225,7 +225,11 @@ export default function ShiftsPage() {
 	const showToast = (message: string, severity: "success" | "error") =>
 		setToast({ open: true, message, severity });
 
-	const { data: shifts, isLoading } = useQuery({
+	const {
+		data: shifts,
+		isLoading,
+		isError,
+	} = useQuery({
 		queryKey: ["shifts"],
 		queryFn: () => api.shifts.list(),
 	});
@@ -296,6 +300,7 @@ export default function ShiftsPage() {
 	return (
 		<Box>
 			<Typography
+				component="h1"
 				variant="h5"
 				gutterBottom
 				sx={{
@@ -304,6 +309,14 @@ export default function ShiftsPage() {
 				}}>
 				Shifts
 			</Typography>
+
+			{isError && (
+				<Alert
+					severity="error"
+					sx={{ mb: 2 }}>
+					Failed to load shifts. Please refresh and try again.
+				</Alert>
+			)}
 
 			{/* Filter bar */}
 			{!isLoading && (shifts?.length ?? 0) > 0 && (
@@ -575,7 +588,8 @@ export default function ShiftsPage() {
 				open={toast.open}
 				autoHideDuration={4000}
 				onClose={() => setToast((t) => ({ ...t, open: false }))}
-				anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
+				anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+				aria-live="polite">
 				<Alert
 					severity={toast.severity}
 					onClose={() => setToast((t) => ({ ...t, open: false }))}

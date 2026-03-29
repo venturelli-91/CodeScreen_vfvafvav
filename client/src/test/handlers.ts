@@ -129,4 +129,43 @@ export const handlers = [
 		};
 		return HttpResponse.json(newWp, { status: 201 });
 	}),
+
+	http.patch("/api/workers/:id", async ({ params, request }) => {
+		const body = (await request.json()) as { name?: string; trade?: string };
+		const worker = mockWorkers.find((w) => w.id === params.id);
+		if (!worker)
+			return HttpResponse.json({ message: "Not found" }, { status: 404 });
+		return HttpResponse.json({ ...worker, ...body });
+	}),
+
+	http.delete("/api/workers/:id", ({ params }) => {
+		const worker = mockWorkers.find((w) => w.id === params.id);
+		if (!worker)
+			return HttpResponse.json({ message: "Not found" }, { status: 404 });
+		return new HttpResponse(null, { status: 204 });
+	}),
+
+	http.patch("/api/workplaces/:id", async ({ params, request }) => {
+		const body = (await request.json()) as { name?: string; address?: string };
+		const wp = mockWorkplaces.find((w) => w.id === params.id);
+		if (!wp)
+			return HttpResponse.json({ message: "Not found" }, { status: 404 });
+		return HttpResponse.json({ ...wp, ...body });
+	}),
+
+	http.delete("/api/workplaces/:id", ({ params }) => {
+		const wp = mockWorkplaces.find((w) => w.id === params.id);
+		if (!wp)
+			return HttpResponse.json({ message: "Not found" }, { status: 404 });
+		return new HttpResponse(null, { status: 204 });
+	}),
+
+	http.get("/api/workers/claims", ({ request }) => {
+		const url = new URL(request.url);
+		const workerId = url.searchParams.get("workerId");
+		const claimed = mockShifts.filter(
+			(s) => s.workerId === workerId && !s.cancelled,
+		);
+		return HttpResponse.json(claimed);
+	}),
 ];

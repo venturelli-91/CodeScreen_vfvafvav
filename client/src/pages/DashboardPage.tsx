@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import {
+	Alert,
 	Avatar,
 	Box,
 	Card,
@@ -91,22 +92,35 @@ function StatCard({
 }
 
 export default function DashboardPage() {
-	const { data: shifts, isLoading: shiftsLoading } = useQuery({
+	const {
+		data: shifts,
+		isLoading: shiftsLoading,
+		isError: shiftsError,
+	} = useQuery({
 		queryKey: ["shifts"],
 		queryFn: () => api.shifts.list(),
 	});
 
-	const { data: workers, isLoading: workersLoading } = useQuery({
+	const {
+		data: workers,
+		isLoading: workersLoading,
+		isError: workersError,
+	} = useQuery({
 		queryKey: ["workers"],
 		queryFn: () => api.workers.list(),
 	});
 
-	const { data: workplaces, isLoading: workplacesLoading } = useQuery({
+	const {
+		data: workplaces,
+		isLoading: workplacesLoading,
+		isError: workplacesError,
+	} = useQuery({
 		queryKey: ["workplaces"],
 		queryFn: () => api.workplaces.list(),
 	});
 
 	const isLoading = shiftsLoading || workersLoading || workplacesLoading;
+	const isError = shiftsError || workersError || workplacesError;
 
 	const stats = useMemo(() => {
 		const all = shifts ?? [];
@@ -153,6 +167,7 @@ export default function DashboardPage() {
 		return (
 			<Box>
 				<Typography
+					component="h1"
 					variant="h5"
 					gutterBottom
 					sx={{
@@ -172,6 +187,7 @@ export default function DashboardPage() {
 	return (
 		<Box>
 			<Typography
+				component="h1"
 				variant="h5"
 				gutterBottom
 				sx={{
@@ -181,6 +197,13 @@ export default function DashboardPage() {
 				Dashboard
 			</Typography>
 
+			{isError && (
+				<Alert
+					severity="error"
+					sx={{ mb: 2 }}>
+					Failed to load dashboard data. Please refresh and try again.
+				</Alert>
+			)}
 			{/* Stat cards */}
 			<Box
 				component={motion.div}

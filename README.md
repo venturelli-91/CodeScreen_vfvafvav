@@ -25,8 +25,8 @@ A full-stack workforce management application for the Martian colony. Manage wor
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/venturelli-91/CodeScreen_vfvafvav.git
-cd CodeScreen_vfvafvav
+git clone https://github.com/venturelli-91/Red_planet_shifts.git
+cd Red_planet_shifts
 ```
 
 ### 2. Start the backend
@@ -70,33 +70,39 @@ The Vite dev server proxies all `/api` requests to `localhost:3000` automaticall
 
 ## API Routes
 
-| Method | Path                 | Description                |
-| ------ | -------------------- | -------------------------- |
-| `GET`  | `/workplaces`        | List all workplaces        |
-| `POST` | `/workplaces`        | Create a workplace         |
-| `GET`  | `/workers`           | List all workers           |
-| `POST` | `/workers`           | Create a worker            |
-| `GET`  | `/shifts`            | List all shifts            |
-| `POST` | `/shifts`            | Create a shift             |
-| `POST` | `/shifts/:id/claim`  | Claim a shift for a worker |
-| `POST` | `/shifts/:id/cancel` | Cancel a shift             |
+| Method   | Path                       | Description                               |
+| -------- | -------------------------- | ----------------------------------------- |
+| `GET`    | `/workplaces`              | List all workplaces                       |
+| `POST`   | `/workplaces`              | Create a workplace                        |
+| `PATCH`  | `/workplaces/:id`          | Update a workplace                        |
+| `DELETE` | `/workplaces/:id`          | Delete a workplace (no active shifts)     |
+| `GET`    | `/workers`                 | List all workers                          |
+| `POST`   | `/workers`                 | Create a worker                           |
+| `PATCH`  | `/workers/:id`             | Update a worker                           |
+| `DELETE` | `/workers/:id`             | Delete a worker                           |
+| `GET`    | `/workers/claims?workerId` | List shifts claimed by a worker           |
+| `GET`    | `/shifts`                  | List all shifts (with worker & workplace) |
+| `POST`   | `/shifts`                  | Create a shift                            |
+| `POST`   | `/shifts/:id/claim`        | Claim a shift for a worker                |
+| `POST`   | `/shifts/:id/cancel`       | Cancel a claimed shift                    |
 
 ## Project Structure
 
 ```
-CodeScreen_vfvafvav/
+Red_planet_shifts/
 ├── client/                  # React frontend
 │   ├── src/
 │   │   ├── api/             # Typed API client
-│   │   ├── pages/           # ShiftsPage, WorkersPage, WorkplacesPage
-│   │   └── test/            # MSW handlers, test wrapper, setup
+│   │   ├── pages/           # Dashboard, Shifts, Workers, Workplaces + tests
+│   │   ├── test/            # MSW handlers, test wrapper, global setup
+│   │   └── ErrorBoundary.tsx
 │   ├── vite.config.ts
 │   └── package.json
 └── server/                  # NestJS backend
     ├── src/
-    │   ├── shifts/          # Controller, Service, DTO
-    │   ├── workers/         # Controller, Service, DTO
-    │   └── workplaces/      # Controller, Service, DTO
+    │   ├── shifts/          # Controller, Service, DTO (end > start validation)
+    │   ├── workers/         # Controller, Service, DTO (CRUD)
+    │   └── workplaces/      # Controller, Service, DTO (CRUD, delete guard)
     └── prisma/
         ├── schema.prisma
         └── seed/            # Sample data seeder

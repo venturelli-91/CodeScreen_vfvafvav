@@ -28,6 +28,7 @@ import ShiftsPage from "./pages/ShiftsPage";
 import WorkplacesPage from "./pages/WorkplacesPage";
 import WorkersPage from "./pages/WorkersPage";
 import DashboardPage from "./pages/DashboardPage";
+import { ErrorBoundary } from "./ErrorBoundary";
 
 const NAV = [
 	{ label: "Dashboard", path: "/dashboard", icon: <DashboardIcon /> },
@@ -131,33 +132,35 @@ export default function App() {
 					pb: { xs: "90px", sm: 4 } /* space for bottom nav on mobile */,
 					px: { xs: 1.5, sm: 3 },
 				}}>
-				<Routes>
-					<Route
-						path="/"
-						element={
-							<Navigate
-								to="/dashboard"
-								replace
-							/>
-						}
-					/>
-					<Route
-						path="/dashboard"
-						element={<DashboardPage />}
-					/>
-					<Route
-						path="/shifts"
-						element={<ShiftsPage />}
-					/>
-					<Route
-						path="/workplaces"
-						element={<WorkplacesPage />}
-					/>
-					<Route
-						path="/workers"
-						element={<WorkersPage />}
-					/>
-				</Routes>
+				<ErrorBoundary>
+					<Routes>
+						<Route
+							path="/"
+							element={
+								<Navigate
+									to="/dashboard"
+									replace
+								/>
+							}
+						/>
+						<Route
+							path="/dashboard"
+							element={<DashboardPage />}
+						/>
+						<Route
+							path="/shifts"
+							element={<ShiftsPage />}
+						/>
+						<Route
+							path="/workplaces"
+							element={<WorkplacesPage />}
+						/>
+						<Route
+							path="/workers"
+							element={<WorkersPage />}
+						/>
+					</Routes>
+				</ErrorBoundary>
 			</Container>
 		</BrowserRouter>
 	);

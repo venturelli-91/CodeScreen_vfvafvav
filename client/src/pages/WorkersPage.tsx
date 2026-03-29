@@ -126,7 +126,11 @@ export default function WorkersPage() {
 	const showToast = (msg: string, severity: "success" | "error") =>
 		setToast({ open: true, message: msg, severity });
 
-	const { data: workers, isLoading } = useQuery({
+	const {
+		data: workers,
+		isLoading,
+		isError,
+	} = useQuery({
 		queryKey: ["workers"],
 		queryFn: () => api.workers.list(),
 	});
@@ -196,6 +200,7 @@ export default function WorkersPage() {
 					mb: 2,
 				}}>
 				<Typography
+					component="h1"
 					variant="h5"
 					sx={{
 						color: "text.primary",
@@ -215,6 +220,14 @@ export default function WorkersPage() {
 					</Button>
 				</motion.div>
 			</Box>
+
+			{isError && (
+				<Alert
+					severity="error"
+					sx={{ mb: 2 }}>
+					Failed to load workers. Please refresh and try again.
+				</Alert>
+			)}
 
 			{isLoading ? (
 				<Box
@@ -599,7 +612,8 @@ export default function WorkersPage() {
 				open={toast.open}
 				autoHideDuration={4000}
 				onClose={() => setToast((t) => ({ ...t, open: false }))}
-				anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
+				anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+				aria-live="polite">
 				<Alert
 					severity={toast.severity}
 					onClose={() => setToast((t) => ({ ...t, open: false }))}
