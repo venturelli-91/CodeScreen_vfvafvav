@@ -22,9 +22,9 @@ const theme = createTheme({
     divider: "rgba(232, 97, 44, 0.15)",
   },
   typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-    h5: { fontWeight: 700 },
-    h6: { fontWeight: 700 },
+    fontFamily: '"Syne", "Helvetica", "Arial", sans-serif',
+    h5: { fontWeight: 700, fontFamily: '"Orbitron", sans-serif' },
+    h6: { fontWeight: 700, fontFamily: '"Orbitron", sans-serif' },
     subtitle1: { fontWeight: 600 },
   },
   shape: { borderRadius: 12 },
