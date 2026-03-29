@@ -9,15 +9,21 @@ import {
 	Dialog,
 	DialogActions,
 	DialogContent,
+	DialogContentText,
 	DialogTitle,
+	IconButton,
 	Snackbar,
 	TextField,
+	Tooltip,
 	Typography,
 } from "@mui/material";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api";
+import type { Workplace } from "../types";
 
 function WorkplaceCardSkeleton() {
 	return (
@@ -89,6 +95,14 @@ export default function WorkplacesPage() {
 	const [wpName, setWpName] = useState("");
 	const [wpAddress, setWpAddress] = useState("");
 
+	// Edit state
+	const [editWp, setEditWp] = useState<Workplace | null>(null);
+	const [editName, setEditName] = useState("");
+	const [editAddress, setEditAddress] = useState("");
+
+	// Delete state
+	const [deleteWp, setDeleteWp] = useState<Workplace | null>(null);
+
 	const [toast, setToast] = useState<{
 		open: boolean;
 		message: string;
@@ -98,6 +112,9 @@ export default function WorkplacesPage() {
 		message: "",
 		severity: "success",
 	});
+
+	const showToast = (msg: string, severity: "success" | "error") =>
+		setToast({ open: true, message: msg, severity });
 
 	const { data: workplaces, isLoading } = useQuery({
 		queryKey: ["workplaces"],
@@ -112,18 +129,9 @@ export default function WorkplacesPage() {
 			setStart("");
 			setEnd("");
 			setTrade("");
-			setToast({
-				open: true,
-				message: "Shift posted successfully!",
-				severity: "success",
-			});
+			showToast("Shift posted successfully!", "success");
 		},
-		onError: () =>
-			setToast({
-				open: true,
-				message: "Failed to post shift.",
-				severity: "error",
-			}),
+		onError: () => showToast("Failed to post shift.", "error"),
 	});
 
 	const createWorkplace = useMutation({
@@ -133,18 +141,41 @@ export default function WorkplacesPage() {
 			setWpOpen(false);
 			setWpName("");
 			setWpAddress("");
-			setToast({
-				open: true,
-				message: "Workplace added successfully!",
-				severity: "success",
-			});
+			showToast("Workplace added successfully!", "success");
 		},
-		onError: () =>
-			setToast({
-				open: true,
-				message: "Failed to add workplace.",
-				severity: "error",
-			}),
+		onError: () => showToast("Failed to add workplace.", "error"),
+	});
+
+	const updateWorkplace = useMutation({
+		mutationFn: ({
+			id,
+			body,
+		}: {
+			id: string;
+			body: { name?: string; address?: string };
+		}) => api.workplaces.update(id, body),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["workplaces"] });
+			setEditWp(null);
+			showToast("Workplace updated.", "success");
+		},
+		onError: () => showToast("Failed to update workplace.", "error"),
+	});
+
+	const deleteWorkplace = useMutation({
+		mutationFn: (id: string) => api.workplaces.remove(id),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["workplaces"] });
+			setDeleteWp(null);
+			showToast("Workplace removed.", "success");
+		},
+		onError: (err: Error) => {
+			setDeleteWp(null);
+			const msg = err.message.includes("409")
+				? "Cannot delete a workplace that has shifts."
+				: "Failed to remove workplace.";
+			showToast(msg, "error");
+		},
 	});
 
 	return (
@@ -193,7 +224,31 @@ export default function WorkplacesPage() {
 					))}
 				</Box>
 			) : workplaces?.length === 0 ? (
-				<Typography color="text.secondary">No workplaces yet.</Typography>
+				<Box
+					sx={{
+						textAlign: "center",
+						py: 8,
+						display: "flex",
+						flexDirection: "column",
+						alignItems: "center",
+						gap: 2,
+					}}>
+					<Typography
+						variant="h6"
+						color="text.secondary">
+						No workplaces yet
+					</Typography>
+					<Typography
+						variant="body2"
+						color="text.secondary">
+						Add your first workplace to start posting shifts.
+					</Typography>
+					<Button
+						variant="contained"
+						onClick={() => setWpOpen(true)}>
+						Add first workplace
+					</Button>
+				</Box>
 			) : (
 				<Box
 					component={motion.div}
@@ -213,9 +268,49 @@ export default function WorkplacesPage() {
 						<motion.div
 							key={wp.id}
 							variants={cardVariants}>
-							<Card sx={{ height: "100%" }}>
-								<CardContent sx={{ pb: 1 }}>
-									<Typography variant="subtitle1">{wp.name}</Typography>
+							<Card
+								sx={{ height: "100%", "&:hover .wp-actions": { opacity: 1 } }}>
+								<CardContent sx={{ pb: 1, position: "relative" }}>
+									{/* Edit / Delete icons */}
+									<Box
+										className="wp-actions"
+										sx={{
+											position: "absolute",
+											top: 6,
+											right: 6,
+											display: "flex",
+											gap: 0.5,
+											opacity: 0,
+											transition: "opacity 0.15s",
+										}}>
+										<Tooltip title="Edit">
+											<IconButton
+												size="small"
+												aria-label={`Edit ${wp.name}`}
+												onClick={() => {
+													setEditWp(wp);
+													setEditName(wp.name);
+													setEditAddress(wp.address);
+												}}>
+												<EditOutlinedIcon sx={{ fontSize: 16 }} />
+											</IconButton>
+										</Tooltip>
+										<Tooltip title="Delete">
+											<IconButton
+												size="small"
+												color="error"
+												aria-label={`Delete ${wp.name}`}
+												onClick={() => setDeleteWp(wp)}>
+												<DeleteOutlineIcon sx={{ fontSize: 16 }} />
+											</IconButton>
+										</Tooltip>
+									</Box>
+
+									<Typography
+										variant="subtitle1"
+										sx={{ pr: 6 }}>
+										{wp.name}
+									</Typography>
 									<Box
 										sx={{
 											display: "flex",
@@ -259,6 +354,7 @@ export default function WorkplacesPage() {
 				</Box>
 			)}
 
+			{/* Add workplace dialog */}
 			<Dialog
 				open={wpOpen}
 				onClose={() => setWpOpen(false)}
@@ -293,22 +389,95 @@ export default function WorkplacesPage() {
 				</DialogContent>
 				<DialogActions>
 					<Button onClick={() => setWpOpen(false)}>Cancel</Button>
-					<motion.div
-						whileHover={{ scale: 1.02 }}
-						whileTap={{ scale: 0.98 }}
-						transition={{ type: "spring", stiffness: 400, damping: 17 }}>
-						<Button
-							variant="contained"
-							disabled={!wpName || !wpAddress || createWorkplace.isPending}
-							onClick={() =>
-								createWorkplace.mutate({ name: wpName, address: wpAddress })
-							}>
-							{createWorkplace.isPending ? "Adding…" : "Add"}
-						</Button>
-					</motion.div>
+					<Button
+						variant="contained"
+						disabled={!wpName || !wpAddress || createWorkplace.isPending}
+						onClick={() =>
+							createWorkplace.mutate({ name: wpName, address: wpAddress })
+						}>
+						{createWorkplace.isPending ? "Adding…" : "Add"}
+					</Button>
 				</DialogActions>
 			</Dialog>
 
+			{/* Edit workplace dialog */}
+			<Dialog
+				open={!!editWp}
+				onClose={() => setEditWp(null)}
+				fullWidth
+				maxWidth="xs"
+				aria-labelledby="edit-workplace-dialog-title">
+				<DialogTitle id="edit-workplace-dialog-title">
+					Edit workplace
+				</DialogTitle>
+				<DialogContent
+					sx={{
+						display: "flex",
+						flexDirection: "column",
+						gap: 2,
+						pt: "16px !important",
+					}}>
+					<TextField
+						label="Name"
+						value={editName}
+						onChange={(e) => setEditName(e.target.value)}
+						size="small"
+						inputProps={{ "aria-required": true }}
+					/>
+					<TextField
+						label="Address"
+						value={editAddress}
+						onChange={(e) => setEditAddress(e.target.value)}
+						size="small"
+						inputProps={{ "aria-required": true }}
+					/>
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={() => setEditWp(null)}>Cancel</Button>
+					<Button
+						variant="contained"
+						disabled={!editName || !editAddress || updateWorkplace.isPending}
+						onClick={() =>
+							editWp &&
+							updateWorkplace.mutate({
+								id: editWp.id,
+								body: { name: editName, address: editAddress },
+							})
+						}>
+						{updateWorkplace.isPending ? "Saving…" : "Save"}
+					</Button>
+				</DialogActions>
+			</Dialog>
+
+			{/* Delete confirmation dialog */}
+			<Dialog
+				open={!!deleteWp}
+				onClose={() => setDeleteWp(null)}
+				maxWidth="xs"
+				fullWidth
+				aria-labelledby="delete-workplace-title">
+				<DialogTitle id="delete-workplace-title">
+					Remove {deleteWp?.name}?
+				</DialogTitle>
+				<DialogContent>
+					<DialogContentText>
+						This will permanently remove <strong>{deleteWp?.name}</strong>.
+						Workplaces with existing shifts cannot be deleted.
+					</DialogContentText>
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={() => setDeleteWp(null)}>Keep it</Button>
+					<Button
+						color="error"
+						variant="contained"
+						disabled={deleteWorkplace.isPending}
+						onClick={() => deleteWp && deleteWorkplace.mutate(deleteWp.id)}>
+						{deleteWorkplace.isPending ? "Removing…" : "Remove"}
+					</Button>
+				</DialogActions>
+			</Dialog>
+
+			{/* Post shift dialog */}
 			<Dialog
 				open={shiftOpen}
 				onClose={() => setShiftOpen(false)}
@@ -355,24 +524,19 @@ export default function WorkplacesPage() {
 				</DialogContent>
 				<DialogActions>
 					<Button onClick={() => setShiftOpen(false)}>Cancel</Button>
-					<motion.div
-						whileHover={{ scale: 1.02 }}
-						whileTap={{ scale: 0.98 }}
-						transition={{ type: "spring", stiffness: 400, damping: 17 }}>
-						<Button
-							variant="contained"
-							disabled={!start || !end || !trade || createShift.isPending}
-							onClick={() =>
-								createShift.mutate({
-									workplaceId: selectedWorkplaceId,
-									start: new Date(start).toISOString(),
-									end: new Date(end).toISOString(),
-									trade,
-								})
-							}>
-							{createShift.isPending ? "Posting…" : "Post"}
-						</Button>
-					</motion.div>
+					<Button
+						variant="contained"
+						disabled={!start || !end || !trade || createShift.isPending}
+						onClick={() =>
+							createShift.mutate({
+								workplaceId: selectedWorkplaceId,
+								start: new Date(start).toISOString(),
+								end: new Date(end).toISOString(),
+								trade,
+							})
+						}>
+						{createShift.isPending ? "Posting…" : "Post"}
+					</Button>
 				</DialogActions>
 			</Dialog>
 

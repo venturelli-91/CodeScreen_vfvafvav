@@ -21,13 +21,16 @@ import {
 	useTheme,
 } from "@mui/material";
 import BusinessIcon from "@mui/icons-material/Business";
+import DashboardIcon from "@mui/icons-material/Dashboard";
 import PeopleIcon from "@mui/icons-material/People";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import ShiftsPage from "./pages/ShiftsPage";
 import WorkplacesPage from "./pages/WorkplacesPage";
 import WorkersPage from "./pages/WorkersPage";
+import DashboardPage from "./pages/DashboardPage";
 
 const NAV = [
+	{ label: "Dashboard", path: "/dashboard", icon: <DashboardIcon /> },
 	{ label: "Shifts", path: "/shifts", icon: <ScheduleIcon /> },
 	{ label: "Workplaces", path: "/workplaces", icon: <BusinessIcon /> },
 	{ label: "Workers", path: "/workers", icon: <PeopleIcon /> },
@@ -133,10 +136,14 @@ export default function App() {
 						path="/"
 						element={
 							<Navigate
-								to="/shifts"
+								to="/dashboard"
 								replace
 							/>
 						}
+					/>
+					<Route
+						path="/dashboard"
+						element={<DashboardPage />}
 					/>
 					<Route
 						path="/shifts"

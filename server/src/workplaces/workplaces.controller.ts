@@ -1,6 +1,16 @@
-import { Controller, Get, Post, Param, Body, Query } from "@nestjs/common";
+import {
+	Controller,
+	Get,
+	Post,
+	Patch,
+	Delete,
+	Param,
+	Body,
+	Query,
+	HttpCode,
+} from "@nestjs/common";
 import { WorkplacesService } from "./workplaces.service";
-import { CreateWorkplaceDto } from "./workplaces.dto";
+import { CreateWorkplaceDto, UpdateWorkplaceDto } from "./workplaces.dto";
 
 @Controller("workplaces")
 export class WorkplacesController {
@@ -18,6 +28,20 @@ export class WorkplacesController {
 
 	@Get()
 	findAll(@Query("limit") limit?: string, @Query("skip") skip?: string) {
-		return this.service.findAll(limit ? +limit : undefined, skip ? +skip : undefined);
+		return this.service.findAll(
+			limit ? +limit : undefined,
+			skip ? +skip : undefined,
+		);
+	}
+
+	@Patch(":id")
+	update(@Param("id") id: string, @Body() dto: UpdateWorkplaceDto) {
+		return this.service.update(id, dto);
+	}
+
+	@Delete(":id")
+	@HttpCode(204)
+	remove(@Param("id") id: string) {
+		return this.service.remove(id);
 	}
 }

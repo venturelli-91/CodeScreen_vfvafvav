@@ -1,6 +1,6 @@
-import { Injectable } from "@nestjs/common";
+import { ConflictException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
-import { CreateWorkplaceDto } from "./workplaces.dto";
+import { CreateWorkplaceDto, UpdateWorkplaceDto } from "./workplaces.dto";
 
 @Injectable()
 export class WorkplacesService {
@@ -15,6 +15,27 @@ export class WorkplacesService {
 	}
 
 	findAll(take?: number, skip?: number) {
-		return this.prisma.workplace.findMany({ take, skip, orderBy: { createdAt: "asc" } });
+		return this.prisma.workplace.findMany({
+			take,
+			skip,
+			orderBy: { createdAt: "asc" },
+		});
+	}
+
+	update(id: string, dto: UpdateWorkplaceDto) {
+		return this.prisma.workplace.update({ where: { id }, data: dto });
+	}
+
+	/** Prevents deletion if shifts exist for this workplace. */
+	async remove(id: string) {
+		const shiftCount = await this.prisma.shift.count({
+			where: { workplaceId: id },
+		});
+		if (shiftCount > 0) {
+			throw new ConflictException(
+				`Cannot delete a workplace that has ${shiftCount} shift(s). Remove the shifts first.`,
+			);
+		}
+		return this.prisma.workplace.delete({ where: { id } });
 	}
 }
