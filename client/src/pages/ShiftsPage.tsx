@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Alert,
   Box,
@@ -16,6 +16,7 @@ import PersonIcon from '@mui/icons-material/Person'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
+import type { Worker, Shift } from '../types'
 
 const fmt = (d: string) =>
   new Date(d).toLocaleString('en-US', {
@@ -63,6 +64,46 @@ const cardVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } },
 }
 
+interface WorkerPickerProps {
+  shift: Shift
+  eligible: Worker[]
+  onPick: (workerId: string) => void
+  isPending: boolean
+}
+
+function WorkerPicker({ shift, eligible, onPick, isPending }: WorkerPickerProps) {
+  if (eligible.length === 0) {
+    return (
+      <Typography variant="caption" color="text.secondary" sx={{ px: 1 }}>
+        No eligible workers
+      </Typography>
+    )
+  }
+  return (
+    <AnimatePresence>
+      {eligible.map((w) => (
+        <motion.div
+          key={w.id}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+        >
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => onPick(w.id)}
+            disabled={isPending}
+            aria-label={`Assign ${w.name} to shift at ${shift.workplace?.name ?? 'this workplace'}`}
+          >
+            {w.name}
+          </Button>
+        </motion.div>
+      ))}
+    </AnimatePresence>
+  )
+}
+
 export default function ShiftsPage() {
   const qc = useQueryClient()
   const [claimingId, setClaimingId] = useState<string | null>(null)
@@ -82,6 +123,16 @@ export default function ShiftsPage() {
     queryKey: ['workers'],
     queryFn: () => api.workers.list(),
   })
+
+  const workersByTrade = useMemo(() => {
+    const map = new Map<string, Worker[]>()
+    for (const w of workers ?? []) {
+      const list = map.get(w.trade) ?? []
+      list.push(w)
+      map.set(w.trade, list)
+    }
+    return map
+  }, [workers])
 
   const claim = useMutation({
     mutationFn: ({ shiftId, workerId }: { shiftId: string; workerId: string }) =>
@@ -126,7 +177,7 @@ export default function ShiftsPage() {
           >
             {shifts?.map((shift) => {
               const status = shiftStatus(shift.cancelled, shift.workerId)
-              const eligible = workers?.filter((w) => w.trade === shift.trade) ?? []
+              const eligible = workersByTrade.get(shift.trade) ?? []
               return (
                 <motion.div key={shift.id} variants={cardVariants}>
                   <Card sx={{ height: '100%' }}>
@@ -157,33 +208,12 @@ export default function ShiftsPage() {
                       <CardActions sx={{ pt: 0, flexWrap: 'wrap', gap: 0.5 }}>
                         {!shift.workerId ? (
                           claimingId === shift.id ? (
-                            eligible.length === 0 ? (
-                              <Typography variant="caption" color="text.secondary" sx={{ px: 1 }}>
-                                No eligible workers
-                              </Typography>
-                            ) : (
-                              <AnimatePresence>
-                                {eligible.map((w) => (
-                                  <motion.div
-                                    key={w.id}
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.9 }}
-                                    transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                                  >
-                                    <Button
-                                      size="small"
-                                      variant="outlined"
-                                      onClick={() => claim.mutate({ shiftId: shift.id, workerId: w.id })}
-                                      disabled={claim.isPending}
-                                      aria-label={`Assign ${w.name} to shift at ${shift.workplace?.name ?? 'this workplace'}`}
-                                    >
-                                      {w.name}
-                                    </Button>
-                                  </motion.div>
-                                ))}
-                              </AnimatePresence>
-                            )
+                            <WorkerPicker
+                              shift={shift}
+                              eligible={eligible}
+                              onPick={(workerId) => claim.mutate({ shiftId: shift.id, workerId })}
+                              isPending={claim.isPending}
+                            />
                           ) : (
                             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ type: 'spring', stiffness: 400, damping: 17 }}>
                               <Button
